@@ -1,0 +1,19 @@
+{
+    "agents": [
+        "copilot"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "packages": [
+        "spatie/laravel-permission"
+    ],
+    "skills": [
+        "infer-conventions",
+        "laravel-best-practices",
+        "testing-best-practices",
+        "livewire-development",
+        "volt-development",
+        "tailwindcss-development",
+        "laravel-permission-development"
+    ]
+}
