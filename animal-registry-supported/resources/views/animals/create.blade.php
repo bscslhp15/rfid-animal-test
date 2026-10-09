@@ -44,6 +44,12 @@
                                 <option value="deceased" {{ old('status') === 'deceased' ? 'selected' : '' }}>Deceased</option>
                             </select>
                         </div>
+
+                        <div class="md:col-span-2">
+                            <span class="block text-sm font-medium text-gray-700">Vaccination status</span>
+                            <span id="vaccination-status-preview" data-vaccination-status class="mt-1 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">Not recorded</span>
+                            <p class="mt-1 text-xs text-gray-500">Automatically based on the vaccine records below; separate from the animal status.</p>
+                        </div>
                     </div>
 
                     @include('animals.partials.category-fields', ['animal' => null])
@@ -173,16 +179,71 @@
 
     <script>
         const vaccinationRows = document.getElementById('vaccination-rows');
+        const vaccinationStatusPreview = document.querySelector('[data-vaccination-status]');
         let nextVaccinationIndex = Number(vaccinationRows.dataset.nextIndex);
+
+        function updateVaccinationStatus() {
+            const records = [...vaccinationRows.querySelectorAll('.vaccine-row')]
+                .map((row) => ({
+                    name: row.querySelector('input[name$="[vaccine_name]"]')?.value.trim() ?? '',
+                    givenOn: row.querySelector('input[name$="[given_on]"]')?.value ?? '',
+                    nextDueOn: row.querySelector('input[name$="[next_due_on]"]')?.value ?? '',
+                }))
+                .filter((record) => record.name !== '');
+
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            const dueSoonDate = new Date(todayDate);
+            dueSoonDate.setDate(dueSoonDate.getDate() + 7);
+            const formatDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            const today = formatDate(todayDate);
+            const dueSoonLimit = formatDate(dueSoonDate);
+            const dueDates = records.map((record) => record.nextDueOn).filter(Boolean);
+
+            let status = 'Not recorded';
+            if (records.length > 0) {
+                if (dueDates.some((date) => date < today)) {
+                    status = 'Overdue';
+                } else if (dueDates.some((date) => date <= dueSoonLimit)) {
+                    status = 'Due soon';
+                } else if (records.some((record) => !record.givenOn)) {
+                    status = 'Date needed';
+                } else if (dueDates.length === 0) {
+                    status = 'Vaccinated';
+                } else {
+                    status = 'Up to date';
+                }
+            }
+
+            const statusStyles = {
+                'Not recorded': 'bg-slate-100 text-slate-700',
+                'Date needed': 'bg-amber-100 text-amber-800',
+                'Overdue': 'bg-rose-100 text-rose-700',
+                'Due soon': 'bg-amber-100 text-amber-800',
+                'Vaccinated': 'bg-emerald-100 text-emerald-700',
+                'Up to date': 'bg-emerald-100 text-emerald-700',
+            };
+
+            vaccinationStatusPreview.textContent = status;
+            vaccinationStatusPreview.className = `mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[status]}`;
+        }
+
+        vaccinationRows.addEventListener('input', updateVaccinationStatus);
+        vaccinationRows.addEventListener('change', updateVaccinationStatus);
+        updateVaccinationStatus();
 
         document.getElementById('add-vaccine').addEventListener('click', () => {
             const template = document.getElementById('vaccine-row-template').innerHTML;
             vaccinationRows.insertAdjacentHTML('beforeend', template.replaceAll('__INDEX__', nextVaccinationIndex++));
+            updateVaccinationStatus();
         });
 
         vaccinationRows.addEventListener('click', (event) => {
             const removeButton = event.target.closest('[data-remove-vaccine]');
-            if (removeButton) removeButton.closest('.vaccine-row').remove();
+            if (removeButton) {
+                removeButton.closest('.vaccine-row').remove();
+                updateVaccinationStatus();
+            }
         });
     </script>
 </x-app-layout>

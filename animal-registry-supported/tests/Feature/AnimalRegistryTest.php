@@ -35,6 +35,20 @@ test('admin can register an animal with a QR token', function () {
     ]);
 });
 
+test('animal registration shows vaccination status separately from animal status', function () {
+    Role::firstOrCreate(['name' => 'staff']);
+
+    $staff = User::factory()->create(['email_verified_at' => now()]);
+    $staff->assignRole('staff');
+
+    $this->actingAs($staff)
+        ->get('/animals/create')
+        ->assertOk()
+        ->assertSee('Vaccination status')
+        ->assertSee('Not recorded')
+        ->assertSee('Automatically based on the vaccine records below; separate from the animal status.');
+});
+
 test('staff can register an animal even when vaccination dates are left blank', function () {
     Role::firstOrCreate(['name' => 'staff']);
 
