@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\Animal;
+use App\Models\Alert;
+use App\Models\FeedingLog;
+use App\Models\ScanLog;
 use App\Models\Species;
 use App\Models\User;
 use Database\Seeders\BootstrapAdminSeeder;
@@ -233,7 +236,7 @@ test('staff can add vaccination and temperature records and the dashboard shows 
     $this->actingAs($staff)
         ->get('/dashboard')
         ->assertOk()
-        ->assertSee('Due soon');
+        ->assertSee('Vaccines due soon');
 });
 
 test('staff can mark an animal missing and scan history is logged for the public lookup route', function () {
@@ -800,6 +803,64 @@ test('dashboard counts only the latest vaccination for each animal and vaccine',
     $this->actingAs($staff)->get('/dashboard')->assertOk()->assertViewHas('stats', function ($stats) {
         return $stats['due_soon'] === 1 && $stats['overdue'] === 0;
     });
+});
+
+test('dashboard shows upcoming vaccinations, recent scans, alerts and feeding activity', function () {
+    Role::firstOrCreate(['name' => 'staff']);
+
+    $staff = User::factory()->create(['email_verified_at' => now()]);
+    $staff->assignRole('staff');
+    $species = Species::factory()->create(['name' => 'Dog', 'category' => 'companion']);
+    $animal = Animal::create([
+        'name' => 'Dashboard Kiko',
+        'species_id' => $species->id,
+        'owner_name' => 'Nena Flores',
+        'owner_phone' => '09173334444',
+        'owner_address' => 'Iloilo City',
+        'status' => 'active',
+    ]);
+
+    $vaccination = $animal->vaccinations()->create([
+        'vaccine_name' => 'Rabies',
+        'given_on' => today()->subYear(),
+        'next_due_on' => today()->addDays(2),
+    ]);
+    ScanLog::create([
+        'animal_id' => $animal->id,
+        'user_id' => $staff->id,
+        'tag_identifier' => 'dashboard-tag',
+        'result' => 'found',
+        'location_text' => 'North gate',
+        'scanned_at' => now(),
+    ]);
+    FeedingLog::create([
+        'animal_id' => $animal->id,
+        'feed_type' => 'Grains',
+        'quantity' => 2,
+        'unit' => 'kg',
+        'fed_at' => now(),
+    ]);
+    Alert::create([
+        'type' => 'vaccine_due_soon',
+        'severity' => 'warning',
+        'animal_id' => $animal->id,
+        'title' => 'Rabies vaccine due soon',
+        'message' => 'Rabies vaccination is due in two days.',
+        'dedupe_key' => 'dashboard-vaccine-due-'.$animal->id,
+        'status' => 'new',
+        'triggered_at' => now(),
+    ]);
+
+    $this->actingAs($staff)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Vaccination attention')
+        ->assertSee('Recent QR scans')
+        ->assertSee('Latest alerts')
+        ->assertSee('Rabies vaccine due soon')
+        ->assertSee('North gate')
+        ->assertViewHas('stats', fn ($stats) => $stats['feedings_today'] === 1 && $stats['open_alerts'] === 1)
+        ->assertViewHas('upcomingVaccinations', fn ($vaccinations) => $vaccinations->contains('id', $vaccination->id));
 });
 
 test('animal registration filters species by category and saves category fields as attributes', function () {

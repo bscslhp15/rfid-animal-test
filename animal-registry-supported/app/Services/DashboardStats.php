@@ -2,22 +2,40 @@
 
 namespace App\Services;
 
+use App\Models\Alert;
 use App\Models\Animal;
+use App\Models\FeedingLog;
+use App\Models\ScanLog;
 use App\Models\Vaccination;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardStats
 {
-    /** @return array{animals: Collection, stats: array{total: int, active: int, missing: int, pending: int, due_soon: int, overdue: int}} */
+    /** @return array{animals: Collection, upcomingVaccinations: Collection, recentScans: Collection, latestAlerts: Collection, stats: array{total: int, active: int, missing: int, pending: int, due_soon: int, overdue: int, feedings_today: int, open_alerts: int}} */
     public function dashboardData(): array
     {
         $latestVaccinations = $this->latestVaccinations();
         $today = today();
+        $upcomingVaccinations = (clone $latestVaccinations)
+            ->with('animal.species')
+            ->whereNotNull('next_due_on')
+            ->whereDate('next_due_on', '<=', $today->copy()->addDays(30))
+            ->orderBy('next_due_on')
+            ->limit(10)
+            ->get();
 
         return [
             'animals' => Animal::with(['species', 'tag'])->latest()->limit(5)->get(),
+            'upcomingVaccinations' => $upcomingVaccinations,
+            'recentScans' => Schema::hasTable('scan_logs')
+                ? ScanLog::with(['animal.species', 'user'])->latest('scanned_at')->limit(10)->get()
+                : collect(),
+            'latestAlerts' => Schema::hasTable('alerts')
+                ? Alert::with('animal')->whereIn('status', ['new', 'read'])->latest()->limit(5)->get()
+                : collect(),
             'stats' => [
                 'total' => Animal::count(),
                 'active' => Animal::where('status', 'active')->count(),
@@ -30,6 +48,12 @@ class DashboardStats
                 'overdue' => (clone $latestVaccinations)
                     ->whereDate('next_due_on', '<', $today)
                     ->count(),
+                'feedings_today' => Schema::hasTable('feeding_logs')
+                    ? FeedingLog::whereDate('fed_at', $today)->count()
+                    : 0,
+                'open_alerts' => Schema::hasTable('alerts')
+                    ? Alert::whereIn('status', ['new', 'read'])->count()
+                    : 0,
             ],
         ];
     }
