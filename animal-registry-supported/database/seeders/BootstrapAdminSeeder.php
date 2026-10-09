@@ -23,6 +23,11 @@ class BootstrapAdminSeeder extends Seeder
             }
         }
 
+        User::query()
+            ->whereDoesntHave('roles')
+            ->get()
+            ->each(fn (User $user) => $user->syncRoles(['owner']));
+
         $email = strtolower(trim((string) env('ADMIN_EMAIL')));
 
         if ($email === '') {

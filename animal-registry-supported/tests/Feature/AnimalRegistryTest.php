@@ -742,6 +742,8 @@ test('database seeding can be repeated without duplicating species or demo users
 
 test('configured bootstrap admin receives the admin role', function () {
     $admin = User::factory()->create(['email_verified_at' => null]);
+    $existingAccount = User::factory()->create(['email_verified_at' => now()]);
+    $existingAccount->syncRoles([]);
     $originalEmail = getenv('ADMIN_EMAIL');
 
     putenv('ADMIN_EMAIL='.$admin->email);
@@ -763,6 +765,7 @@ test('configured bootstrap admin receives the admin role', function () {
 
     expect($admin->fresh()->hasRole('admin'))->toBeTrue()
         ->and($admin->fresh()->email_verified_at)->not->toBeNull()
+        ->and($existingAccount->fresh()->hasRole('owner'))->toBeTrue()
         ->and(Species::query()->where('name', 'Duck')->where('category', 'poultry')->exists())->toBeTrue();
 });
 
