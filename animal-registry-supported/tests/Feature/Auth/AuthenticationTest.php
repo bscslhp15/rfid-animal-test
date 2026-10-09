@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Livewire\Volt\Volt;
+use Spatie\Permission\Models\Role;
 
 test('login screen can be rendered', function () {
     $response = $this->get('/login');
@@ -25,6 +26,22 @@ test('users can authenticate using the login screen', function () {
         ->assertRedirect(route('dashboard', absolute: false));
 
     $this->assertAuthenticated();
+});
+
+test('owner login redirects to the My Animals page', function () {
+    Role::firstOrCreate(['name' => 'owner']);
+    $owner = User::factory()->create();
+    $owner->syncRoles(['owner']);
+
+    $component = Volt::test('pages.auth.login')
+        ->set('form.email', $owner->email)
+        ->set('form.password', 'password');
+
+    $component->call('login');
+
+    $component
+        ->assertHasNoErrors()
+        ->assertRedirect(route('my-animals.index', absolute: false));
 });
 
 test('users can not authenticate with invalid password', function () {

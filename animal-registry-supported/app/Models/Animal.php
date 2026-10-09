@@ -22,6 +22,7 @@ class Animal extends Model
     protected $fillable = [
         'name',
         'species_id',
+        'owner_user_id',
         'pet_code',
         'group_name',
         'quantity',
@@ -63,6 +64,11 @@ class Animal extends Model
     public function species(): BelongsTo
     {
         return $this->belongsTo(Species::class);
+    }
+
+    public function ownerUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_user_id');
     }
 
     public function tag(): HasOne

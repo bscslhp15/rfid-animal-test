@@ -4,6 +4,8 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AnimalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FeedingController;
+use App\Http\Controllers\MyAnimalsController;
+use App\Http\Controllers\OwnerDirectoryController;
 use App\Http\Controllers\OwnershipTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +14,8 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/my-animals', [MyAnimalsController::class, 'index'])->name('my-animals.index');
+    Route::get('/owners', [OwnerDirectoryController::class, 'index'])->name('owners.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/analytics', AnalyticsController::class)->name('analytics');
     Route::get('/feeding', [FeedingController::class, 'index'])->name('feeding.index');

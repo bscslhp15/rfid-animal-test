@@ -16,7 +16,7 @@
                 </div>
             @endif
 
-            <form method="GET" action="{{ route('animals.index') }}" class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-7">
+            <form method="GET" action="{{ route('animals.index') }}" class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-8">
                 <div class="lg:col-span-2">
                     <label for="search" class="block text-xs font-medium text-slate-600">Search animal, pet ID, or owner</label>
                     <input id="search" name="search" value="{{ $filters['search'] ?? '' }}" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search registry">
@@ -57,10 +57,19 @@
                     </select>
                 </div>
                 <div>
+                    <label for="owner_user_id" class="block text-xs font-medium text-slate-600">Owner account</label>
+                    <select id="owner_user_id" name="owner_user_id" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">All owners</option>
+                        @foreach ($ownerOptions as $ownerOption)
+                            <option value="{{ $ownerOption->id }}" {{ (string) ($filters['owner_user_id'] ?? '') === (string) $ownerOption->id ? 'selected' : '' }}>{{ $ownerOption->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
                     <label for="group" class="block text-xs font-medium text-slate-600">Group</label>
                     <input id="group" name="group" value="{{ $filters['group'] ?? '' }}" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Herd / flock / pen">
                 </div>
-                <div class="flex items-end gap-2 lg:col-span-7">
+                <div class="flex items-end gap-2 lg:col-span-8">
                     <button type="submit" class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Apply filters</button>
                     <a href="{{ route('animals.index') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Clear</a>
                 </div>

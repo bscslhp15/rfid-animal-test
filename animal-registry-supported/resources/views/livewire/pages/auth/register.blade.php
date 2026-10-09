@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use Spatie\Permission\Models\Role;
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -29,12 +30,14 @@ new #[Layout('layouts.guest')] class extends Component
         $validated['password'] = Hash::make($validated['password']);
 
         $user = User::create($validated);
+        Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
+        $user->assignRole('owner');
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        $this->redirect(route('dashboard', absolute: false), navigate: true);
+        $this->redirect(route($user->homeRouteName(), absolute: false), navigate: true);
     }
 }; ?>
 

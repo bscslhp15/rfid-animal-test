@@ -61,6 +61,16 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="md:col-span-2">
+                                <label for="owner_user_id" class="block text-sm font-medium text-gray-700">Owner account (optional)</label>
+                                <select id="owner_user_id" name="owner_user_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">No linked account</option>
+                                    @foreach ($ownerAccounts as $ownerAccount)
+                                        <option value="{{ $ownerAccount->id }}" {{ (string) old('owner_user_id', $animal->owner_user_id) === (string) $ownerAccount->id ? 'selected' : '' }}>{{ $ownerAccount->name }} · {{ $ownerAccount->email }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Linking an account lets its owner see this animal in My animals.</p>
+                            </div>
+                            <div class="md:col-span-2">
                                 <label for="owner_name" class="block text-sm font-medium text-gray-700">Name of owner</label>
                                 <input id="owner_name" name="owner_name" type="text" value="{{ old('owner_name', $animal->owner_name) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             </div>

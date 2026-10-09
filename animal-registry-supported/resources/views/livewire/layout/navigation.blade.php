@@ -17,33 +17,38 @@ new class extends Component
 }; ?>
 
 @php
-    $navigationGroups = [
-        [
-            'label' => 'Overview',
-            'items' => [
+    $user = auth()->user();
+    $isOwnerAccount = $user->isOwnerAccount();
+    $homeRoute = $user->homeRouteName();
+
+    $navigationGroups = $isOwnerAccount
+        ? [
+            ['label' => 'Registry', 'items' => [
+                ['label' => 'My animals', 'route' => 'my-animals.index', 'active' => 'my-animals.*', 'badge' => null],
+            ]],
+            ['label' => 'Account', 'items' => [
+                ['label' => 'Profile', 'route' => 'profile', 'active' => 'profile', 'badge' => null],
+            ]],
+        ]
+        : [
+            ['label' => 'Overview', 'items' => [
                 ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'badge' => null],
                 ['label' => 'Analytics', 'route' => 'analytics', 'active' => 'analytics', 'badge' => null],
-            ],
-        ],
-        [
-            'label' => 'Registry',
-            'items' => [
+            ]],
+            ['label' => 'Registry', 'items' => [
                 ['label' => 'Animals', 'route' => 'animals.index', 'active' => 'animals.*', 'badge' => null],
+                ['label' => 'Owners', 'route' => 'owners.index', 'active' => 'owners.*', 'badge' => null],
                 ['label' => 'Feeding', 'route' => 'feeding.index', 'active' => 'feeding.*', 'badge' => null],
-            ],
-        ],
-        [
-            'label' => 'Account',
-            'items' => [
+            ]],
+            ['label' => 'Account', 'items' => [
                 ['label' => 'Profile', 'route' => 'profile', 'active' => 'profile', 'badge' => null],
-            ],
-        ],
-    ];
+            ]],
+        ];
 @endphp
 
 <nav x-data="{ open: false }" class="relative z-40 lg:w-64 lg:shrink-0">
     <div class="flex h-16 items-center justify-between bg-slate-950 px-4 text-white lg:hidden">
-        <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 font-semibold">
+        <a href="{{ route($homeRoute) }}" wire:navigate class="flex items-center gap-3 font-semibold">
             <x-application-logo class="h-8 w-auto fill-current text-teal-300" />
             <span>Animal Registry</span>
         </a>
@@ -58,7 +63,7 @@ new class extends Component
     </div>
 
     <aside class="sticky top-0 hidden h-screen flex-col bg-slate-950 text-white lg:flex">
-        <a href="{{ route('dashboard') }}" wire:navigate class="flex h-20 items-center gap-3 border-b border-slate-800 px-6">
+        <a href="{{ route($homeRoute) }}" wire:navigate class="flex h-20 items-center gap-3 border-b border-slate-800 px-6">
             <x-application-logo class="h-9 w-auto fill-current text-teal-300" />
             <span class="font-semibold tracking-wide">Animal Registry</span>
         </a>

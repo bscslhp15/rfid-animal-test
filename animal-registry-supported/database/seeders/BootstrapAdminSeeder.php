@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Species;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
@@ -13,6 +13,10 @@ class BootstrapAdminSeeder extends Seeder
 {
     public function run(): void
     {
+        foreach (['admin', 'staff', 'veterinarian', 'owner'] as $roleName) {
+            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+        }
+
         foreach (config('animal_categories') as $category => $definition) {
             foreach ($definition['species'] as $speciesName) {
                 Species::firstOrCreate(['name' => $speciesName, 'category' => $category]);
@@ -24,8 +28,6 @@ class BootstrapAdminSeeder extends Seeder
         if ($email === '') {
             return;
         }
-
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $user = User::query()->where('email', $email)->first();
 

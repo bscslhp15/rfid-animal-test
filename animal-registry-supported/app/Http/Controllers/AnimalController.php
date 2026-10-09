@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Animal;
 use App\Models\Species;
 use App\Models\Tag;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -23,6 +24,7 @@ class AnimalController extends Controller
             'status' => ['nullable', 'in:active,pending,missing,deceased'],
             'group' => ['nullable', 'string', 'max:120'],
             'search' => ['nullable', 'string', 'max:120'],
+            'owner_user_id' => ['nullable', 'integer', Rule::in(User::owners()->pluck('id')->all())],
             'vaccination' => ['nullable', 'in:vaccinated,not_vaccinated'],
         ]);
 
@@ -31,6 +33,7 @@ class AnimalController extends Controller
             ->when($filters['species'] ?? null, fn ($query, $speciesId) => $query->where('species_id', $speciesId))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['group'] ?? null, fn ($query, $group) => $query->where('group_name', $group))
+            ->when($filters['owner_user_id'] ?? null, fn ($query, $ownerUserId) => $query->where('owner_user_id', $ownerUserId))
             ->when($filters['vaccination'] ?? null, function ($query, $vaccination): void {
                 $hasGivenVaccine = fn ($vaccinationQuery) => $vaccinationQuery->whereNotNull('given_on');
 
@@ -57,10 +60,11 @@ class AnimalController extends Controller
             'missing' => Animal::where('status', 'missing')->count(),
         ];
         $speciesOptions = Species::orderBy('name')->get();
+        $ownerOptions = User::owners()->orderBy('name')->get(['id', 'name', 'email']);
         $categories = Species::query()->select('category')->distinct()->orderBy('category')->pluck('category');
         $animalCategories = config('animal_categories');
 
-        return view('animals.index', compact('animals', 'counts', 'speciesOptions', 'categories', 'filters', 'animalCategories'));
+        return view('animals.index', compact('animals', 'counts', 'speciesOptions', 'ownerOptions', 'categories', 'filters', 'animalCategories'));
     }
 
     public function create()
@@ -70,8 +74,9 @@ class AnimalController extends Controller
         $species = Species::orderBy('name')->get();
         $animalCategories = config('animal_categories');
         $breedSuggestions = config('breeds');
+        $ownerAccounts = User::owners()->orderBy('name')->get(['id', 'name', 'email']);
 
-        return view('animals.create', compact('species', 'animalCategories', 'breedSuggestions'));
+        return view('animals.create', compact('species', 'animalCategories', 'breedSuggestions', 'ownerAccounts'));
     }
 
     public function store(Request $request)
@@ -97,6 +102,7 @@ class AnimalController extends Controller
             'sex' => ['nullable', 'in:male,female,unknown'],
             'birthdate' => ['nullable', 'date'],
             'owner_name' => ['required', 'string', 'max:150'],
+            'owner_user_id' => ['nullable', 'integer', Rule::in(User::owners()->pluck('id')->all())],
             'owner_phone' => ['required', 'string', 'max:30'],
             'owner_address' => ['required', 'string', 'max:255'],
             'status' => ['nullable', 'in:active,pending,missing,deceased'],
@@ -119,6 +125,7 @@ class AnimalController extends Controller
         $animal = Animal::create([
             'name' => $validated['name'],
             'species_id' => $validated['species_id'],
+            'owner_user_id' => $validated['owner_user_id'] ?? null,
             'group_name' => $validated['group_name'] ?? null,
             'quantity' => $validated['quantity'] ?? 1,
             'attributes' => $validated['attributes'] ?? [],
@@ -159,8 +166,9 @@ class AnimalController extends Controller
         $species = Species::orderBy('name')->get();
         $animalCategories = config('animal_categories');
         $breedSuggestions = config('breeds');
+        $ownerAccounts = User::owners()->orderBy('name')->get(['id', 'name', 'email']);
 
-        return view('animals.edit', compact('animal', 'species', 'animalCategories', 'breedSuggestions'));
+        return view('animals.edit', compact('animal', 'species', 'animalCategories', 'breedSuggestions', 'ownerAccounts'));
     }
 
     public function update(Request $request, Animal $animal)
@@ -186,6 +194,7 @@ class AnimalController extends Controller
             'sex' => ['nullable', 'in:male,female,unknown'],
             'birthdate' => ['nullable', 'date'],
             'owner_name' => ['required', 'string', 'max:150'],
+            'owner_user_id' => ['nullable', 'integer', Rule::in(User::owners()->pluck('id')->all())],
             'owner_phone' => ['required', 'string', 'max:30'],
             'owner_address' => ['required', 'string', 'max:255'],
             'status' => ['nullable', 'in:active,pending,missing,deceased'],
@@ -209,6 +218,7 @@ class AnimalController extends Controller
         $animal->update([
             'name' => $validated['name'],
             'species_id' => $validated['species_id'],
+            'owner_user_id' => $validated['owner_user_id'] ?? null,
             'group_name' => $validated['group_name'] ?? $animal->group_name,
             'quantity' => $validated['quantity'] ?? $animal->quantity,
             'attributes' => $validated['attributes'] ?? $animal->attributes ?? [],
@@ -263,8 +273,9 @@ class AnimalController extends Controller
         $species = Species::orderBy('name')->get();
         $animalCategories = config('animal_categories');
         $breedSuggestions = config('breeds');
+        $ownerAccounts = User::owners()->orderBy('name')->get(['id', 'name', 'email']);
 
-        return view('animals.show', compact('animal', 'species', 'animalCategories', 'breedSuggestions'));
+        return view('animals.show', compact('animal', 'species', 'animalCategories', 'breedSuggestions', 'ownerAccounts'));
     }
 
     public function storeVaccination(Request $request, Animal $animal)
@@ -426,6 +437,7 @@ class AnimalController extends Controller
 
             if (! empty($row['delete'])) {
                 $vaccination?->delete();
+
                 continue;
             }
 
@@ -502,6 +514,7 @@ class AnimalController extends Controller
 
             if (! $visible) {
                 $rules['attributes.'.$key] = ['prohibited'];
+
                 continue;
             }
 

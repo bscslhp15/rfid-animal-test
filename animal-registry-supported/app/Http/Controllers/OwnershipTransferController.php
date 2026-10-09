@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Alert;
 use App\Models\Animal;
 use App\Models\OwnershipTransfer;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class OwnershipTransferController extends Controller
 {
@@ -48,6 +50,7 @@ class OwnershipTransferController extends Controller
             'from_owner_phone' => ['nullable', 'string', 'max:30'],
             'from_owner_address' => ['nullable', 'string', 'max:255'],
             'to_owner_name' => ['required', 'string', 'max:150'],
+            'to_owner_user_id' => ['nullable', 'integer', Rule::in(User::owners()->pluck('id')->all())],
             'to_owner_phone' => ['nullable', 'string', 'max:30'],
             'to_owner_address' => ['nullable', 'string', 'max:255'],
             'transferred_on' => ['required', 'date'],
@@ -73,6 +76,7 @@ class OwnershipTransferController extends Controller
             ]);
 
             $animal->update([
+                'owner_user_id' => $validated['to_owner_user_id'] ?? null,
                 'owner_name' => $validated['to_owner_name'],
                 'owner_phone' => $validated['to_owner_phone'] ?? $animal->owner_phone,
                 'owner_address' => $validated['to_owner_address'] ?? $animal->owner_address,

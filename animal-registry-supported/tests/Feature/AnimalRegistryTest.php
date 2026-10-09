@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Animal;
 use App\Models\Alert;
+use App\Models\Animal;
 use App\Models\FeedingLog;
 use App\Models\ScanLog;
 use App\Models\Species;
@@ -95,6 +95,126 @@ test('animals can be filtered by saved vaccination records', function () {
         ->assertDontSee('Vaccinated Rex');
 });
 
+test('staff can link an animal to an owner account but not to another staff account', function () {
+    Role::firstOrCreate(['name' => 'staff']);
+    Role::firstOrCreate(['name' => 'owner']);
+
+    $staff = User::factory()->create(['email_verified_at' => now()]);
+    $staff->assignRole('staff');
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->syncRoles(['owner']);
+
+    $species = Species::factory()->create(['name' => 'Dog', 'category' => 'companion']);
+    $animalData = [
+        'name' => 'Linked Rex',
+        'category' => 'companion',
+        'species_id' => $species->id,
+        'owner_user_id' => $owner->id,
+        'owner_name' => $owner->name,
+        'owner_phone' => '09170001234',
+        'owner_address' => 'Davao City',
+        'status' => 'active',
+    ];
+
+    $this->actingAs($staff)
+        ->post('/animals', $animalData)
+        ->assertRedirect('/animals');
+
+    $this->assertDatabaseHas('animals', [
+        'name' => 'Linked Rex',
+        'owner_user_id' => $owner->id,
+    ]);
+
+    $animalData['name'] = 'Invalid owner link';
+    $animalData['owner_user_id'] = $staff->id;
+
+    $this->actingAs($staff)
+        ->from('/animals/create')
+        ->post('/animals', $animalData)
+        ->assertSessionHasErrors('owner_user_id');
+});
+
+test('owners can see only animals linked to their account', function () {
+    Role::firstOrCreate(['name' => 'owner']);
+
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->syncRoles(['owner']);
+    $otherOwner = User::factory()->create(['email_verified_at' => now()]);
+    $otherOwner->syncRoles(['owner']);
+    $species = Species::factory()->create(['name' => 'Cow', 'category' => 'livestock']);
+
+    Animal::create([
+        'name' => 'My linked cow',
+        'owner_user_id' => $owner->id,
+        'species_id' => $species->id,
+        'owner_name' => $owner->name,
+        'owner_phone' => '09170001111',
+        'owner_address' => 'Davao City',
+        'status' => 'active',
+    ]);
+    $otherAnimal = Animal::create([
+        'name' => 'Another owner cow',
+        'owner_user_id' => $otherOwner->id,
+        'species_id' => $species->id,
+        'owner_name' => $otherOwner->name,
+        'owner_phone' => '09170002222',
+        'owner_address' => 'Cebu City',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/my-animals')
+        ->assertOk()
+        ->assertSee('My linked cow')
+        ->assertDontSee('Another owner cow');
+
+    $this->actingAs($owner)->get('/animals')->assertForbidden();
+    $this->actingAs($owner)->get('/animals/'.$otherAnimal->id)->assertForbidden();
+});
+
+test('staff can see linked owner accounts and legacy owner counts', function () {
+    Role::firstOrCreate(['name' => 'staff']);
+    Role::firstOrCreate(['name' => 'owner']);
+
+    $staff = User::factory()->create(['email_verified_at' => now()]);
+    $staff->syncRoles(['staff']);
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->syncRoles(['owner']);
+    $species = Species::factory()->create(['name' => 'Pig', 'category' => 'livestock']);
+
+    Animal::create([
+        'name' => 'Linked pig',
+        'owner_user_id' => $owner->id,
+        'species_id' => $species->id,
+        'owner_name' => $owner->name,
+        'owner_phone' => '09170001111',
+        'owner_address' => 'Davao City',
+        'status' => 'active',
+    ]);
+    Animal::create([
+        'name' => 'Legacy pig',
+        'species_id' => $species->id,
+        'owner_name' => 'Legacy Owner',
+        'owner_phone' => '09170003333',
+        'owner_address' => 'Iloilo City',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($staff)
+        ->get('/owners')
+        ->assertOk()
+        ->assertSee($owner->name)
+        ->assertSee($owner->email)
+        ->assertSee('Legacy Owner')
+        ->assertSee('Linked animals');
+
+    $this->actingAs($staff)
+        ->get('/animals?owner_user_id='.$owner->id)
+        ->assertOk()
+        ->assertSee('Linked pig')
+        ->assertDontSee('Legacy pig');
+});
+
 test('staff can register an animal even when vaccination dates are left blank', function () {
     Role::firstOrCreate(['name' => 'staff']);
 
@@ -149,6 +269,7 @@ test('newly registered users do not get staff access automatically and ordinary 
 
     $this->assertNotNull($user);
     $this->assertFalse($user->hasRole('staff'));
+    $this->assertTrue($user->hasRole('owner'));
     $this->actingAs($user)->get('/dashboard')->assertForbidden();
 });
 
@@ -949,14 +1070,20 @@ test('animal registration filters species by category and saves category fields 
 
 test('staff can transfer ownership and keep history of previous owners', function () {
     Role::firstOrCreate(['name' => 'staff']);
+    Role::firstOrCreate(['name' => 'owner']);
 
     $staff = User::factory()->create(['email_verified_at' => now()]);
     $staff->assignRole('staff');
+    $previousOwner = User::factory()->create(['email_verified_at' => now()]);
+    $previousOwner->syncRoles(['owner']);
+    $nextOwner = User::factory()->create(['email_verified_at' => now()]);
+    $nextOwner->syncRoles(['owner']);
 
     $species = Species::factory()->create(['name' => 'Cow', 'category' => 'livestock']);
     $animal = Animal::create([
         'name' => 'Mila',
         'species_id' => $species->id,
+        'owner_user_id' => $previousOwner->id,
         'sex' => 'female',
         'owner_name' => 'Alfred Dela Cruz',
         'owner_phone' => '09171110001',
@@ -971,6 +1098,7 @@ test('staff can transfer ownership and keep history of previous owners', functio
             'from_owner_phone' => '09171110001',
             'from_owner_address' => 'Davao City',
             'to_owner_name' => 'Belen Ramos',
+            'to_owner_user_id' => $nextOwner->id,
             'to_owner_phone' => '09171234567',
             'to_owner_address' => 'General Santos City',
             'transferred_on' => '2026-10-07',
@@ -983,8 +1111,12 @@ test('staff can transfer ownership and keep history of previous owners', functio
     $animal->refresh();
 
     expect($animal->owner_name)->toBe('Belen Ramos')
+        ->and($animal->owner_user_id)->toBe($nextOwner->id)
         ->and($animal->owner_phone)->toBe('09171234567')
         ->and($animal->owner_address)->toBe('General Santos City');
+
+    $this->actingAs($previousOwner)->get('/my-animals')->assertOk()->assertDontSee('Mila');
+    $this->actingAs($nextOwner)->get('/my-animals')->assertOk()->assertSee('Mila');
 
     $this->assertDatabaseHas('ownership_transfers', [
         'animal_id' => $animal->id,

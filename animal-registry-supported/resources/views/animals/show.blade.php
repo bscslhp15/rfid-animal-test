@@ -249,6 +249,15 @@
                                 <input type="text" name="to_owner_name" value="{{ old('to_owner_name') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             </div>
                             <div>
+                                <label for="to_owner_user_id" class="block text-sm font-medium text-gray-700">New owner account (optional)</label>
+                                <select id="to_owner_user_id" name="to_owner_user_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">No linked account</option>
+                                    @foreach ($ownerAccounts as $ownerAccount)
+                                        <option value="{{ $ownerAccount->id }}" {{ (string) old('to_owner_user_id') === (string) $ownerAccount->id ? 'selected' : '' }}>{{ $ownerAccount->name }} · {{ $ownerAccount->email }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700">New owner phone</label>
                                 <input type="text" name="to_owner_phone" value="{{ old('to_owner_phone') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
