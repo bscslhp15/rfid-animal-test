@@ -577,8 +577,12 @@ test('staff can open the analytics page and see the summary tiles', function () 
         ->get('/analytics')
         ->assertOk()
         ->assertSee('Analytics')
-        ->assertSee('Total Animals')
-        ->assertSee('Vaccination Coverage');
+        ->assertSee('Registered animals')
+        ->assertSee('Vaccination coverage')
+        ->assertSee('data-chart-type="doughnut"', false)
+        ->assertSee('data-chart-type="pie"', false)
+        ->assertSee('data-chart-type="bar"', false)
+        ->assertSee('data-chart-type="line"', false);
 });
 
 test('analytics page stays accessible when the feeding logs table is missing', function () {

@@ -1,31 +1,33 @@
-<div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <h4 class="text-base font-semibold text-slate-900">{{ $title }}</h4>
+@php
+    $labels = $items['labels'] ?? [];
+    $values = $items['values'] ?? [];
+    $hasData = count($labels) > 0 && array_sum($values) > 0;
+@endphp
 
-    @php
-        $labels = $items['labels'] ?? [];
-        $values = $items['values'] ?? [];
-        $maxValue = !empty($values) ? max($values) : 0;
-    @endphp
+<article class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <header class="border-b border-slate-100 px-5 py-4">
+        <h4 class="text-sm font-semibold text-slate-900">{{ $title }}</h4>
+        @if (! empty($description))
+            <p class="mt-1 text-xs text-slate-500">{{ $description }}</p>
+        @endif
+    </header>
 
-    @if (empty($labels) || empty($values))
-        <div class="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No data available.</div>
+    @if ($hasData)
+        <div class="relative h-64 px-4 py-4 sm:h-72">
+            <canvas
+                aria-label="{{ $title }}"
+                role="img"
+                data-analytics-chart
+                data-chart-type="{{ $type ?? 'bar' }}"
+                data-labels="{{ json_encode($labels, JSON_HEX_APOS | JSON_HEX_QUOT) }}"
+                data-values="{{ json_encode($values) }}"
+            ></canvas>
+        </div>
     @else
-        <div class="mt-4 space-y-3">
-            @foreach ($labels as $index => $label)
-                @php
-                    $value = (int) ($values[$index] ?? 0);
-                    $barWidth = $maxValue > 0 ? max(12, ($value / $maxValue) * 100) : 0;
-                @endphp
-                <div>
-                    <div class="mb-1 flex items-center justify-between text-xs text-slate-600">
-                        <span>{{ $label }}</span>
-                        <span class="font-semibold text-slate-800">{{ $value }}</span>
-                    </div>
-                    <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-400" style="width: {{ $barWidth }}%"></div>
-                    </div>
-                </div>
-            @endforeach
+        <div class="flex h-64 flex-col items-center justify-center px-6 text-center sm:h-72">
+            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-lg text-slate-400" aria-hidden="true">—</span>
+            <p class="mt-3 text-sm font-semibold text-slate-700">No data for this selection</p>
+            <p class="mt-1 max-w-xs text-xs text-slate-500">Try a wider date range or adjust the category and species filters.</p>
         </div>
     @endif
-</div>
+</article>
