@@ -23,6 +23,7 @@ class AnimalController extends Controller
             'status' => ['nullable', 'in:active,pending,missing,deceased'],
             'group' => ['nullable', 'string', 'max:120'],
             'search' => ['nullable', 'string', 'max:120'],
+            'vaccination' => ['nullable', 'in:vaccinated,not_vaccinated'],
         ]);
 
         $animals = Animal::with(['species', 'tag'])
@@ -30,6 +31,15 @@ class AnimalController extends Controller
             ->when($filters['species'] ?? null, fn ($query, $speciesId) => $query->where('species_id', $speciesId))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['group'] ?? null, fn ($query, $group) => $query->where('group_name', $group))
+            ->when($filters['vaccination'] ?? null, function ($query, $vaccination): void {
+                $hasGivenVaccine = fn ($vaccinationQuery) => $vaccinationQuery->whereNotNull('given_on');
+
+                if ($vaccination === 'vaccinated') {
+                    $query->whereHas('vaccinations', $hasGivenVaccine);
+                } else {
+                    $query->whereDoesntHave('vaccinations', $hasGivenVaccine);
+                }
+            })
             ->when($filters['search'] ?? null, function ($query, $search): void {
                 $query->where(function ($searchQuery) use ($search): void {
                     $searchQuery->where('name', 'like', "%{$search}%")

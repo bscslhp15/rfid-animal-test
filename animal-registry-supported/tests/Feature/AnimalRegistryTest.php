@@ -44,9 +44,52 @@ test('animal registration shows vaccination status separately from animal status
     $this->actingAs($staff)
         ->get('/animals/create')
         ->assertOk()
-        ->assertSee('Vaccination status')
-        ->assertSee('Not recorded')
-        ->assertSee('Automatically based on the vaccine records below; separate from the animal status.');
+        ->assertSee('Vaccinated?')
+        ->assertSee('Not vaccinated')
+        ->assertSee('List of vaccines')
+        ->assertSee('hasVaccinations === \'1\'', false);
+});
+
+test('animals can be filtered by saved vaccination records', function () {
+    Role::firstOrCreate(['name' => 'staff']);
+
+    $staff = User::factory()->create(['email_verified_at' => now()]);
+    $staff->assignRole('staff');
+    $species = Species::factory()->create(['name' => 'Dog', 'category' => 'companion']);
+
+    $vaccinatedAnimal = Animal::create([
+        'name' => 'Vaccinated Rex',
+        'species_id' => $species->id,
+        'owner_name' => 'Owner One',
+        'owner_phone' => '09170000001',
+        'owner_address' => 'Address One',
+        'status' => 'active',
+    ]);
+    $vaccinatedAnimal->vaccinations()->create([
+        'vaccine_name' => 'Rabies',
+        'given_on' => now()->toDateString(),
+    ]);
+
+    Animal::create([
+        'name' => 'Unvaccinated Luna',
+        'species_id' => $species->id,
+        'owner_name' => 'Owner Two',
+        'owner_phone' => '09170000002',
+        'owner_address' => 'Address Two',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($staff)
+        ->get('/animals?vaccination=vaccinated')
+        ->assertOk()
+        ->assertSee('Vaccinated Rex')
+        ->assertDontSee('Unvaccinated Luna');
+
+    $this->actingAs($staff)
+        ->get('/animals?vaccination=not_vaccinated')
+        ->assertOk()
+        ->assertSee('Unvaccinated Luna')
+        ->assertDontSee('Vaccinated Rex');
 });
 
 test('staff can register an animal even when vaccination dates are left blank', function () {

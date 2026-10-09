@@ -6,12 +6,13 @@
     @php
         $vaccineRows = old('vaccinations', [[]]);
         $nextVaccinationIndex = count($vaccineRows);
+        $hasVaccinations = old('has_vaccinations', collect($vaccineRows)->contains(fn ($vaccine) => filled($vaccine['vaccine_name'] ?? null)) ? '1' : '0');
     @endphp
 
     <div class="py-8">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white rounded-lg shadow-sm p-6">
-                <form method="POST" action="{{ route('animals.store') }}" class="space-y-6">
+                <form method="POST" action="{{ route('animals.store') }}" class="space-y-6" x-data='{ hasVaccinations: @json((string) $hasVaccinations) }'>
                     @csrf
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -46,9 +47,12 @@
                         </div>
 
                         <div class="md:col-span-2">
-                            <span class="block text-sm font-medium text-gray-700">Vaccination status</span>
-                            <span id="vaccination-status-preview" data-vaccination-status class="mt-1 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">Not recorded</span>
-                            <p class="mt-1 text-xs text-gray-500">Automatically based on the vaccine records below; separate from the animal status.</p>
+                            <label for="has_vaccinations" class="block text-sm font-medium text-gray-700">Vaccinated?</label>
+                            <select id="has_vaccinations" name="has_vaccinations" x-model="hasVaccinations" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                            <span id="vaccination-status-preview" data-vaccination-status class="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $hasVaccinations === '1' ? 'Not recorded' : 'Not vaccinated' }}</span>
                         </div>
                     </div>
 
@@ -78,7 +82,7 @@
                     <div class="border-t border-gray-200 pt-6 space-y-4">
                         <h3 class="text-lg font-semibold text-gray-800">Health intake</h3>
 
-                        <div>
+                        <fieldset x-show="hasVaccinations === '1'" x-cloak :disabled="hasVaccinations !== '1'" class="space-y-4">
                             <div class="flex items-center justify-between gap-4">
                                 <h4 class="text-sm font-semibold text-gray-800">List of vaccines</h4>
                                 <button id="add-vaccine" type="button" class="rounded-md border border-indigo-300 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50">Add vaccine</button>
@@ -105,7 +109,7 @@
                                     </div>
                                 @endforeach
                             </div>
-                        </div>
+                        </fieldset>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
@@ -180,6 +184,7 @@
     <script>
         const vaccinationRows = document.getElementById('vaccination-rows');
         const vaccinationStatusPreview = document.querySelector('[data-vaccination-status]');
+        const vaccinationToggle = document.getElementById('has_vaccinations');
         let nextVaccinationIndex = Number(vaccinationRows.dataset.nextIndex);
 
         function updateVaccinationStatus() {
@@ -200,8 +205,8 @@
             const dueSoonLimit = formatDate(dueSoonDate);
             const dueDates = records.map((record) => record.nextDueOn).filter(Boolean);
 
-            let status = 'Not recorded';
-            if (records.length > 0) {
+            let status = vaccinationToggle.value === '1' ? 'Not recorded' : 'Not vaccinated';
+            if (vaccinationToggle.value === '1' && records.length > 0) {
                 if (dueDates.some((date) => date < today)) {
                     status = 'Overdue';
                 } else if (dueDates.some((date) => date <= dueSoonLimit)) {
@@ -217,6 +222,7 @@
 
             const statusStyles = {
                 'Not recorded': 'bg-slate-100 text-slate-700',
+                'Not vaccinated': 'bg-slate-100 text-slate-700',
                 'Date needed': 'bg-amber-100 text-amber-800',
                 'Overdue': 'bg-rose-100 text-rose-700',
                 'Due soon': 'bg-amber-100 text-amber-800',
@@ -230,6 +236,7 @@
 
         vaccinationRows.addEventListener('input', updateVaccinationStatus);
         vaccinationRows.addEventListener('change', updateVaccinationStatus);
+        vaccinationToggle.addEventListener('change', updateVaccinationStatus);
         updateVaccinationStatus();
 
         document.getElementById('add-vaccine').addEventListener('click', () => {
