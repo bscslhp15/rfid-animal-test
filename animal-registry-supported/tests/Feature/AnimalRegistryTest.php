@@ -577,7 +577,8 @@ test('configured bootstrap admin receives the admin role', function () {
     }
 
     expect($admin->fresh()->hasRole('admin'))->toBeTrue()
-        ->and($admin->fresh()->email_verified_at)->not->toBeNull();
+        ->and($admin->fresh()->email_verified_at)->not->toBeNull()
+        ->and(Species::query()->where('name', 'Duck')->where('category', 'poultry')->exists())->toBeTrue();
 });
 
 test('animal profile measurements append history instead of replacing earlier readings', function () {
