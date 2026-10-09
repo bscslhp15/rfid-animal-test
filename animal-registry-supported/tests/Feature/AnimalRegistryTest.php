@@ -3,6 +3,7 @@
 use App\Models\Animal;
 use App\Models\Species;
 use App\Models\User;
+use Database\Seeders\BootstrapAdminSeeder;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -552,6 +553,31 @@ test('database seeding can be repeated without duplicating species or demo users
 
     expect(Species::query()->where('name', 'Dog')->where('category', 'companion')->count())->toBe(1);
     expect(User::query()->whereIn('email', ['admin@example.com', 'staff@example.com'])->count())->toBe(2);
+});
+
+test('configured bootstrap admin receives the admin role', function () {
+    $admin = User::factory()->create(['email_verified_at' => null]);
+    $originalEmail = getenv('ADMIN_EMAIL');
+
+    putenv('ADMIN_EMAIL='.$admin->email);
+    $_ENV['ADMIN_EMAIL'] = $admin->email;
+    $_SERVER['ADMIN_EMAIL'] = $admin->email;
+
+    try {
+        $this->seed(BootstrapAdminSeeder::class);
+    } finally {
+        if ($originalEmail === false) {
+            putenv('ADMIN_EMAIL');
+            unset($_ENV['ADMIN_EMAIL'], $_SERVER['ADMIN_EMAIL']);
+        } else {
+            putenv('ADMIN_EMAIL='.$originalEmail);
+            $_ENV['ADMIN_EMAIL'] = $originalEmail;
+            $_SERVER['ADMIN_EMAIL'] = $originalEmail;
+        }
+    }
+
+    expect($admin->fresh()->hasRole('admin'))->toBeTrue()
+        ->and($admin->fresh()->email_verified_at)->not->toBeNull();
 });
 
 test('animal profile measurements append history instead of replacing earlier readings', function () {
