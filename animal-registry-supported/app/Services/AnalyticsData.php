@@ -93,10 +93,6 @@ class AnalyticsData
 
         return Vaccination::query()
             ->whereIn('animal_id', $animalIds)
-            ->where(function ($query) {
-                $query->whereNull('deleted_at')
-                    ->orWhere('deleted_at', '')->orWhere('deleted_at', '0000-00-00 00:00:00');
-            })
             ->orderBy('animal_id')
             ->orderBy('given_on', 'desc')
             ->orderBy('created_at', 'desc')
