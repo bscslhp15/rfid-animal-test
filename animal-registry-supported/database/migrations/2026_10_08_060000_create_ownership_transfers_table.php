@@ -25,7 +25,7 @@ return new class extends Migration
             $table->decimal('price', 12, 2)->nullable();
             $table->string('reference_no')->nullable();
             $table->text('notes')->nullable();
-            $table->foreignUuid('recorded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('recorded_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }
