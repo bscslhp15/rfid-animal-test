@@ -83,58 +83,74 @@
 
             <div class="bg-white overflow-hidden shadow-sm rounded-lg">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+                    <table class="min-w-[1480px] divide-y divide-gray-200 text-left text-sm">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 font-medium text-gray-600">#</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Animal</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Date</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Species</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Category</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Breed</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Group / details</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Owner</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Status</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">QR</th>
-                                <th class="px-6 py-3 font-medium text-gray-600">Actions</th>
+                                <th class="w-36 whitespace-nowrap px-5 py-3 font-medium text-gray-600">#</th>
+                                <th class="w-40 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Animal</th>
+                                <th class="w-28 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Date</th>
+                                <th class="w-32 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Species</th>
+                                <th class="w-36 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Category</th>
+                                <th class="w-32 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Breed</th>
+                                <th class="w-72 px-5 py-3 font-medium text-gray-600">Group / details</th>
+                                <th class="w-40 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Owner</th>
+                                <th class="w-28 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Status</th>
+                                <th class="w-28 whitespace-nowrap px-5 py-3 font-medium text-gray-600">QR</th>
+                                <th class="w-40 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
                             @forelse ($animals as $animal)
                                 <tr>
-                                    <td class="px-6 py-4 font-semibold text-gray-900">{{ $animal->pet_code ?? '—' }}</td>
-                                    <td class="px-6 py-4">
+                                    <td class="whitespace-nowrap px-5 py-4 font-semibold text-gray-900">{{ $animal->pet_code ?? '—' }}</td>
+                                    <td class="px-5 py-4">
                                         <a href="{{ route('animals.show', $animal) }}" class="font-semibold text-indigo-600 hover:underline">{{ $animal->name }}</a>
                                     </td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $animal->created_at?->format('Y-m-d') ?? '—' }}</td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $animal->species?->name ?? '—' }}</td>
-                                    <td class="px-6 py-4">
+                                    <td class="whitespace-nowrap px-5 py-4 text-gray-700">{{ $animal->created_at?->format('Y-m-d') ?? '—' }}</td>
+                                    <td class="px-5 py-4 text-gray-700">{{ $animal->species?->name ?? '—' }}</td>
+                                    <td class="px-5 py-4">
                                         <span class="inline-flex rounded-full bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">{{ $animalCategories[$animal->species?->category]['label'] ?? ucfirst($animal->species?->category ?? 'Unknown') }}</span>
                                     </td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $animal->breed ?? '—' }}</td>
-                                    <td class="px-6 py-4 text-gray-700">
-                                        <div>{{ $animal->group_name ?? '—' }} · Qty {{ $animal->quantity }}</div>
-                                        @foreach ($animal->attributes ?? [] as $key => $value)
-                                            @if (filled($value))
-                                                @php $attributeDefinition = collect($animalCategories[$animal->species?->category]['fields'] ?? [])->firstWhere('key', $key); @endphp
-                                                <div class="mt-1 text-xs text-slate-500">{{ $attributeDefinition['label'] ?? \Illuminate\Support\Str::headline($key) }}: {{ is_scalar($value) ? $value : json_encode($value) }}</div>
+                                    <td class="px-5 py-4 text-gray-700">{{ $animal->breed ?? '—' }}</td>
+                                    <td class="px-5 py-4">
+                                        <div class="min-w-64 max-w-72 space-y-2">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <span class="shrink-0 text-xs text-slate-500">Group</span>
+                                                <span class="break-words text-right text-sm font-semibold text-slate-800">{{ $animal->group_name ?: 'Unassigned' }}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between gap-3">
+                                                <span class="text-xs text-slate-500">Quantity</span>
+                                                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{{ $animal->quantity }}</span>
+                                            </div>
+                                            @if (collect($animal->attributes ?? [])->contains(fn ($value) => filled($value)))
+                                                <dl class="space-y-1.5 border-t border-slate-100 pt-2">
+                                                    @foreach ($animal->attributes ?? [] as $key => $value)
+                                                        @if (filled($value))
+                                                            @php $attributeDefinition = collect($animalCategories[$animal->species?->category]['fields'] ?? [])->firstWhere('key', $key); @endphp
+                                                            <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 text-xs leading-5">
+                                                                <dt class="break-words text-slate-500">{{ $attributeDefinition['label'] ?? \Illuminate\Support\Str::headline($key) }}</dt>
+                                                                <dd class="break-words text-right font-medium text-slate-700">{{ is_scalar($value) ? $value : json_encode($value) }}</dd>
+                                                            </div>
+                                                        @endif
+                                                    @endforeach
+                                                </dl>
                                             @endif
-                                        @endforeach
+                                        </div>
                                     </td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $animal->owner_name }}</td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-5 py-4 text-gray-700">{{ $animal->owner_name }}</td>
+                                    <td class="px-5 py-4">
                                         <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $animal->status === 'active' ? 'bg-green-100 text-green-700' : ($animal->status === 'missing' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700') }}">
                                             {{ ucfirst($animal->status) }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-5 py-4">
                                         @if ($animal->tag)
                                             <div class="w-20 h-20 rounded border bg-white p-1">
                                                 {!! QrCode::size(80)->generate(route('animal.public', $animal->tag->identifier)) !!}
                                             </div>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-5 py-4">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <a href="{{ route('animals.show', $animal) }}" class="inline-flex items-center rounded bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">View</a>
                                             <a href="{{ route('animals.edit', $animal) }}" class="inline-flex items-center rounded bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100">Edit</a>

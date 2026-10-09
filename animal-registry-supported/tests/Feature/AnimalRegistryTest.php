@@ -774,9 +774,13 @@ test('animal listing filters by category, species, status, group, and search and
 
     $response = $this->actingAs($staff)->get('/animals?category=companion&species='.$dog->id.'&status=active&group=Pen%20A&search=Pen%20dog');
 
-    $response->assertOk()->assertViewHas('animals', function ($animals) {
-        return $animals->total() === 16 && $animals->count() === 15;
-    });
+    $response->assertOk()
+        ->assertSee('min-w-[1480px]', false)
+        ->assertSee('Group / details')
+        ->assertSee('Quantity')
+        ->assertViewHas('animals', function ($animals) {
+            return $animals->total() === 16 && $animals->count() === 15;
+        });
 });
 
 test('dashboard counts only the latest vaccination for each animal and vaccine', function () {
