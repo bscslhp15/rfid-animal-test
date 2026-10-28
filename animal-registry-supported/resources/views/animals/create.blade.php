@@ -61,7 +61,7 @@
                     <div class="border-t border-gray-200 pt-6 space-y-2">
                         <h3 class="text-lg font-semibold text-gray-800">RFID identification</h3>
                         <label for="rfid_tag_id" class="block text-sm font-medium text-gray-700">RFID tag number (optional)</label>
-                        <input id="rfid_tag_id" name="rfid_tag_id" type="text" inputmode="numeric" autocomplete="off" maxlength="64" value="{{ old('rfid_tag_id') }}" @keydown.enter.prevent class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <input id="rfid_tag_id" name="rfid_tag_id" type="text" inputmode="numeric" autocomplete="off" maxlength="64" value="{{ old('rfid_tag_id') }}" @keydown.enter.prevent data-rfid-assignment class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <p class="text-xs text-gray-500">Scan the tag with your reader while this field is focused, or type its number. This is separate from the QR code.</p>
                     </div>
 

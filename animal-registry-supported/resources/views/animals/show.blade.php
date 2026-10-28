@@ -79,7 +79,7 @@
                             </div>
                             <div>
                                 <label for="profile-rfid-tag-id" class="block font-medium text-gray-700">RFID tag number (optional)</label>
-                                <input id="profile-rfid-tag-id" name="rfid_tag_id" value="{{ $animal->rfid_tag_id }}" maxlength="64" inputmode="numeric" autocomplete="off" @keydown.enter.prevent class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <input id="profile-rfid-tag-id" name="rfid_tag_id" value="{{ $animal->rfid_tag_id }}" maxlength="64" inputmode="numeric" autocomplete="off" @keydown.enter.prevent data-rfid-assignment class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
                                 <label for="profile-sex" class="block font-medium text-gray-700">Sex</label>

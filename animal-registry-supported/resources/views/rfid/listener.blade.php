@@ -76,21 +76,18 @@
             }
 
             const target = event.target;
-            if (target instanceof Element && target.closest('select, [contenteditable="true"], #rfid_tag_id')) {
+            if (
+                target instanceof Element
+                && target.closest('select, [contenteditable="true"], [data-rfid-assignment]')
+            ) {
                 buffer = '';
                 scanTarget = null;
                 window.clearTimeout(submitTimer);
                 return;
             }
 
-            const loginEmailField = target instanceof HTMLInputElement
-                && target.type === 'email'
-                && window.location.pathname === '/login';
             const passwordField = target instanceof HTMLInputElement && target.type === 'password';
-            if (
-                ((target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) && !loginEmailField)
-                || passwordField
-            ) {
+            if (passwordField) {
                 buffer = '';
                 scanTarget = null;
                 window.clearTimeout(submitTimer);
@@ -148,6 +145,6 @@
                     }
                 }, 1200);
             }
-        });
+        }, true);
     })();
 </script>
