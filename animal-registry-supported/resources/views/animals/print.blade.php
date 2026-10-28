@@ -178,6 +178,10 @@
                 <div class="small" style="margin-top: 8px;">{{ $animal->tag?->identifier ?? 'No tag assigned' }}</div>
             </div>
             <div class="card">
+                <span class="label">RFID Tag</span>
+                <div class="value">{{ $animal->rfid_tag_id ?? 'No RFID tag assigned' }}</div>
+            </div>
+            <div class="card">
                 <span class="label">Notes</span>
                 <div class="value" style="font-size: 13px; font-weight: 400;">{{ $animal->notes ?? 'No notes recorded.' }}</div>
             </div>

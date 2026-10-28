@@ -47,6 +47,7 @@ class AnimalController extends Controller
                 $query->where(function ($searchQuery) use ($search): void {
                     $searchQuery->where('name', 'like', "%{$search}%")
                         ->orWhere('pet_code', 'like', "%{$search}%")
+                        ->orWhere('rfid_tag_id', 'like', "%{$search}%")
                         ->orWhere('owner_name', 'like', "%{$search}%");
                 });
             })
@@ -96,6 +97,7 @@ class AnimalController extends Controller
 
         $validated = $request->validate(array_merge([
             'name' => ['required', 'string', 'max:120'],
+            'rfid_tag_id' => ['nullable', 'string', 'max:64', Rule::unique('animals', 'rfid_tag_id')],
             'category' => ['required', Rule::in(array_keys(config('animal_categories')))],
             'species_id' => ['required', $speciesRule],
             'breed' => ['nullable', 'string', 'max:120'],
@@ -124,6 +126,7 @@ class AnimalController extends Controller
 
         $animal = Animal::create([
             'name' => $validated['name'],
+            'rfid_tag_id' => $validated['rfid_tag_id'] ?? null,
             'species_id' => $validated['species_id'],
             'owner_user_id' => $validated['owner_user_id'] ?? null,
             'group_name' => $validated['group_name'] ?? null,
@@ -188,6 +191,7 @@ class AnimalController extends Controller
 
         $validated = $request->validate(array_merge([
             'name' => ['required', 'string', 'max:120'],
+            'rfid_tag_id' => ['sometimes', 'nullable', 'string', 'max:64', Rule::unique('animals', 'rfid_tag_id')->ignore($animal->id)],
             'category' => ['required', Rule::in(array_keys(config('animal_categories')))],
             'species_id' => ['required', $speciesRule],
             'breed' => ['nullable', 'string', 'max:120'],
@@ -217,6 +221,7 @@ class AnimalController extends Controller
 
         $animal->update([
             'name' => $validated['name'],
+            'rfid_tag_id' => array_key_exists('rfid_tag_id', $validated) ? $validated['rfid_tag_id'] : $animal->rfid_tag_id,
             'species_id' => $validated['species_id'],
             'owner_user_id' => $validated['owner_user_id'] ?? null,
             'group_name' => $validated['group_name'] ?? $animal->group_name,

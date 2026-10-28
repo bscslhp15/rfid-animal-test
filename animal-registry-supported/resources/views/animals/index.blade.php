@@ -2,9 +2,14 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Animal Registry</h2>
-            <a href="{{ route('animals.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                Register animal
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('rfid.scan') }}" class="inline-flex items-center rounded-md border border-indigo-300 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-indigo-700 hover:bg-indigo-50">
+                    Scan RFID
+                </a>
+                <a href="{{ route('animals.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    Register animal
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -18,7 +23,7 @@
 
             <form method="GET" action="{{ route('animals.index') }}" class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-8">
                 <div class="lg:col-span-2">
-                    <label for="search" class="block text-xs font-medium text-slate-600">Search animal, pet ID, or owner</label>
+                    <label for="search" class="block text-xs font-medium text-slate-600">Search animal, pet ID, RFID, or owner</label>
                     <input id="search" name="search" value="{{ $filters['search'] ?? '' }}" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search registry">
                 </div>
                 <div>
@@ -104,6 +109,7 @@
                                 <th class="w-72 px-5 py-3 font-medium text-gray-600">Group / details</th>
                                 <th class="w-40 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Owner</th>
                                 <th class="w-28 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Status</th>
+                                <th class="w-40 whitespace-nowrap px-5 py-3 font-medium text-gray-600">RFID</th>
                                 <th class="w-28 whitespace-nowrap px-5 py-3 font-medium text-gray-600">QR</th>
                                 <th class="w-40 whitespace-nowrap px-5 py-3 font-medium text-gray-600">Actions</th>
                             </tr>
@@ -152,6 +158,7 @@
                                             {{ ucfirst($animal->status) }}
                                         </span>
                                     </td>
+                                    <td class="whitespace-nowrap px-5 py-4 font-mono text-xs text-gray-700">{{ $animal->rfid_tag_id ?? '—' }}</td>
                                     <td class="px-5 py-4">
                                         @if ($animal->tag)
                                             <div class="w-20 h-20 rounded border bg-white p-1">

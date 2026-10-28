@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
-test('admin can register an animal with a QR token', function () {
+test('admin can register an animal with separate RFID and QR identifiers', function () {
     Role::firstOrCreate(['name' => 'admin']);
 
     $admin = User::factory()->create(['email_verified_at' => now()]);
@@ -21,6 +21,7 @@ test('admin can register an animal with a QR token', function () {
     $this->actingAs($admin)
         ->post('/animals', [
             'name' => 'Rex',
+            'rfid_tag_id' => '901021000338099',
             'species_id' => $species->id,
             'sex' => 'male',
             'breed' => 'Alsatian',
@@ -35,7 +36,54 @@ test('admin can register an animal with a QR token', function () {
         'name' => 'Rex',
         'species_id' => $species->id,
         'status' => 'active',
+        'rfid_tag_id' => '901021000338099',
     ]);
+    $this->assertDatabaseHas('tags', [
+        'animal_id' => Animal::where('name', 'Rex')->value('id'),
+        'type' => 'qr',
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/animals?search=901021000338099')
+        ->assertOk()
+        ->assertSee('Rex');
+
+    $animal = Animal::where('name', 'Rex')->firstOrFail();
+    $this->actingAs($admin)
+        ->get("/animals/{$animal->id}")
+        ->assertOk()
+        ->assertSee('901021000338099')
+        ->assertSee('QR code');
+});
+
+test('an RFID tag number cannot be assigned to more than one animal', function () {
+    Role::firstOrCreate(['name' => 'admin']);
+
+    $admin = User::factory()->create(['email_verified_at' => now()]);
+    $admin->assignRole('admin');
+    $species = Species::factory()->create(['name' => 'Dog']);
+    $rfidTagId = '901021000338099';
+
+    $animalData = [
+        'name' => 'Rex',
+        'rfid_tag_id' => $rfidTagId,
+        'species_id' => $species->id,
+        'sex' => 'male',
+        'owner_name' => 'Maria Santos',
+        'owner_phone' => '09171234567',
+        'owner_address' => 'Barangay San Jose, Davao City',
+        'status' => 'active',
+    ];
+
+    $this->actingAs($admin)->post('/animals', $animalData)->assertRedirect('/animals');
+
+    $animalData['name'] = 'Luna';
+    $this->actingAs($admin)
+        ->from('/animals/create')
+        ->post('/animals', $animalData)
+        ->assertSessionHasErrors('rfid_tag_id');
+
+    $this->assertDatabaseMissing('animals', ['name' => 'Luna']);
 });
 
 test('animal registration shows vaccination status separately from animal status', function () {
@@ -50,6 +98,8 @@ test('animal registration shows vaccination status separately from animal status
         ->assertSee('Vaccinated?')
         ->assertSee('Not vaccinated')
         ->assertSee('List of vaccines')
+        ->assertSee('RFID tag number (optional)')
+        ->assertSee('separate from the QR code')
         ->assertSee('hasVaccinations === \'1\'', false);
 });
 

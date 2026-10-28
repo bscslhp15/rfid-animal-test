@@ -43,6 +43,7 @@
                         <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
                             <div><dt class="text-gray-500">Species</dt><dd class="mt-1 font-medium">{{ $animal->species?->name ?? '—' }}</dd></div>
                             <div><dt class="text-gray-500">Breed</dt><dd class="mt-1 font-medium">{{ $animal->breed ?? '—' }}</dd></div>
+                            <div><dt class="text-gray-500">RFID tag ID</dt><dd class="mt-1 font-medium break-all">{{ $animal->rfid_tag_id ?? 'Not assigned' }}</dd></div>
                             <div><dt class="text-gray-500">Sex</dt><dd class="mt-1 font-medium">{{ ucfirst($animal->sex) }}</dd></div>
                             <div><dt class="text-gray-500">Birthdate</dt><dd class="mt-1 font-medium">{{ $animal->birthdate ? $animal->birthdate->format('M d, Y') : 'Not provided' }}</dd></div>
                             <div class="md:col-span-2"><dt class="text-gray-500">Owner</dt><dd class="mt-1 font-medium">{{ $animal->owner_name }}</dd></div>
@@ -75,6 +76,10 @@
                             <div>
                                 <label for="profile-name" class="block font-medium text-gray-700">Name</label>
                                 <input id="profile-name" name="name" value="{{ $animal->name }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="profile-rfid-tag-id" class="block font-medium text-gray-700">RFID tag number (optional)</label>
+                                <input id="profile-rfid-tag-id" name="rfid_tag_id" value="{{ $animal->rfid_tag_id }}" maxlength="64" inputmode="numeric" autocomplete="off" @keydown.enter.prevent class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
                                 <label for="profile-sex" class="block font-medium text-gray-700">Sex</label>
@@ -114,6 +119,7 @@
                             </div>
                         </div>
                         @include('animals.partials.category-fields', ['animal' => $animal])
+                        <p class="text-xs text-gray-500">Scan the RFID tag while the field is focused. RFID and QR remain separate identifiers.</p>
                         <div class="flex justify-end gap-3">
                             <button type="button" @click="editing = false" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                             <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Save changes</button>
@@ -137,6 +143,11 @@
                     @else
                         <p class="mt-4 text-gray-500">No QR attached.</p>
                     @endif
+                </div>
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <p class="text-sm uppercase tracking-wide text-gray-500">RFID tag</p>
+                    <p class="mt-4 break-all text-lg font-semibold text-gray-900">{{ $animal->rfid_tag_id ?? 'No RFID tag assigned.' }}</p>
+                    <p class="mt-2 text-xs text-gray-500">RFID is stored separately and does not replace the animal's QR code.</p>
                 </div>
             </div>
 

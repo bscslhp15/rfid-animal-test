@@ -32,5 +32,8 @@
                 </main>
             </div>
         </div>
+        @can('viewAny', \App\Models\Animal::class)
+            @include('rfid.listener', ['lookupUrl' => route('rfid.scan.lookup')])
+        @endcan
     </body>
 </html>

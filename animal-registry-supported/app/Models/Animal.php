@@ -24,6 +24,7 @@ class Animal extends Model
         'species_id',
         'owner_user_id',
         'pet_code',
+        'rfid_tag_id',
         'group_name',
         'quantity',
         'attributes',

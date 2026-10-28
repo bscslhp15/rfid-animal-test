@@ -7,11 +7,16 @@ use App\Http\Controllers\FeedingController;
 use App\Http\Controllers\MyAnimalsController;
 use App\Http\Controllers\OwnerDirectoryController;
 use App\Http\Controllers\OwnershipTransferController;
+use App\Http\Controllers\RfidScanController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+Route::post('/rfid/public-scan', [RfidScanController::class, 'publicLookup'])
+    ->middleware('throttle:60,1')
+    ->name('rfid.public-scan.lookup');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/my-animals', [MyAnimalsController::class, 'index'])->name('my-animals.index');
@@ -22,6 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/feeding', [FeedingController::class, 'store'])->name('feeding.store');
 
     Route::get('/animals', [AnimalController::class, 'index'])->name('animals.index');
+    Route::get('/rfid/scan', [RfidScanController::class, 'index'])->name('rfid.scan');
+    Route::post('/rfid/scan', [RfidScanController::class, 'lookup'])->name('rfid.scan.lookup');
     Route::get('/animals/create', [AnimalController::class, 'create'])->name('animals.create');
     Route::post('/animals', [AnimalController::class, 'store'])->name('animals.store');
     Route::get('/animals/{animal}/edit', [AnimalController::class, 'edit'])->name('animals.edit');
