@@ -8,6 +8,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -97,7 +98,7 @@ class AnimalController extends Controller
 
         $validated = $request->validate(array_merge([
             'name' => ['required', 'string', 'max:120'],
-            'rfid_tag_id' => ['nullable', 'string', 'max:64', Rule::unique('animals', 'rfid_tag_id')],
+            'rfid_tag_id' => ['nullable', 'string', 'max:64', Rule::unique('animals', 'rfid_tag_id')->whereNull('deleted_at')],
             'category' => ['required', Rule::in(array_keys(config('animal_categories')))],
             'species_id' => ['required', $speciesRule],
             'breed' => ['nullable', 'string', 'max:120'],
@@ -124,23 +125,27 @@ class AnimalController extends Controller
             'weight_unit' => ['nullable', 'in:kg,lb'],
         ], $this->categoryAttributeRules($category, $request)));
 
-        $animal = Animal::create([
-            'name' => $validated['name'],
-            'rfid_tag_id' => $validated['rfid_tag_id'] ?? null,
-            'species_id' => $validated['species_id'],
-            'owner_user_id' => $validated['owner_user_id'] ?? null,
-            'group_name' => $validated['group_name'] ?? null,
-            'quantity' => $validated['quantity'] ?? 1,
-            'attributes' => $validated['attributes'] ?? [],
-            'breed' => $validated['breed'] ?? null,
-            'sex' => $validated['sex'] ?? 'unknown',
-            'birthdate' => $validated['birthdate'] ?? null,
-            'owner_name' => $validated['owner_name'],
-            'owner_phone' => $validated['owner_phone'],
-            'owner_address' => $validated['owner_address'],
-            'status' => $validated['status'] ?? 'active',
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        $animal = DB::transaction(function () use ($validated): Animal {
+            $this->releaseDeletedRfidTag($validated['rfid_tag_id'] ?? null);
+
+            return Animal::create([
+                'name' => $validated['name'],
+                'rfid_tag_id' => $validated['rfid_tag_id'] ?? null,
+                'species_id' => $validated['species_id'],
+                'owner_user_id' => $validated['owner_user_id'] ?? null,
+                'group_name' => $validated['group_name'] ?? null,
+                'quantity' => $validated['quantity'] ?? 1,
+                'attributes' => $validated['attributes'] ?? [],
+                'breed' => $validated['breed'] ?? null,
+                'sex' => $validated['sex'] ?? 'unknown',
+                'birthdate' => $validated['birthdate'] ?? null,
+                'owner_name' => $validated['owner_name'],
+                'owner_phone' => $validated['owner_phone'],
+                'owner_address' => $validated['owner_address'],
+                'status' => $validated['status'] ?? 'active',
+                'notes' => $validated['notes'] ?? null,
+            ]);
+        });
 
         $this->syncVaccinations($animal, $validated['vaccinations'] ?? []);
         $this->persistIntakeDetails($animal, $request, $validated);
@@ -191,7 +196,7 @@ class AnimalController extends Controller
 
         $validated = $request->validate(array_merge([
             'name' => ['required', 'string', 'max:120'],
-            'rfid_tag_id' => ['sometimes', 'nullable', 'string', 'max:64', Rule::unique('animals', 'rfid_tag_id')->ignore($animal->id)],
+            'rfid_tag_id' => ['sometimes', 'nullable', 'string', 'max:64', Rule::unique('animals', 'rfid_tag_id')->whereNull('deleted_at')->ignore($animal->id)],
             'category' => ['required', Rule::in(array_keys(config('animal_categories')))],
             'species_id' => ['required', $speciesRule],
             'breed' => ['nullable', 'string', 'max:120'],
@@ -219,23 +224,28 @@ class AnimalController extends Controller
             'weight_unit' => ['nullable', 'in:kg,lb'],
         ], $this->categoryAttributeRules($category, $request)));
 
-        $animal->update([
-            'name' => $validated['name'],
-            'rfid_tag_id' => array_key_exists('rfid_tag_id', $validated) ? $validated['rfid_tag_id'] : $animal->rfid_tag_id,
-            'species_id' => $validated['species_id'],
-            'owner_user_id' => $validated['owner_user_id'] ?? null,
-            'group_name' => $validated['group_name'] ?? $animal->group_name,
-            'quantity' => $validated['quantity'] ?? $animal->quantity,
-            'attributes' => $validated['attributes'] ?? $animal->attributes ?? [],
-            'breed' => $validated['breed'] ?? null,
-            'sex' => $validated['sex'] ?? 'unknown',
-            'birthdate' => $validated['birthdate'] ?? null,
-            'owner_name' => $validated['owner_name'],
-            'owner_phone' => $validated['owner_phone'],
-            'owner_address' => $validated['owner_address'],
-            'status' => $validated['status'] ?? $animal->status,
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        DB::transaction(function () use ($animal, $validated): void {
+            $rfidTagId = array_key_exists('rfid_tag_id', $validated) ? $validated['rfid_tag_id'] : $animal->rfid_tag_id;
+            $this->releaseDeletedRfidTag($rfidTagId);
+
+            $animal->update([
+                'name' => $validated['name'],
+                'rfid_tag_id' => $rfidTagId,
+                'species_id' => $validated['species_id'],
+                'owner_user_id' => $validated['owner_user_id'] ?? null,
+                'group_name' => $validated['group_name'] ?? $animal->group_name,
+                'quantity' => $validated['quantity'] ?? $animal->quantity,
+                'attributes' => $validated['attributes'] ?? $animal->attributes ?? [],
+                'breed' => $validated['breed'] ?? null,
+                'sex' => $validated['sex'] ?? 'unknown',
+                'birthdate' => $validated['birthdate'] ?? null,
+                'owner_name' => $validated['owner_name'],
+                'owner_phone' => $validated['owner_phone'],
+                'owner_address' => $validated['owner_address'],
+                'status' => $validated['status'] ?? $animal->status,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+        });
 
         $this->syncVaccinations($animal, $validated['vaccinations'] ?? []);
         $this->persistIntakeDetails($animal, $request, $validated);
@@ -249,9 +259,21 @@ class AnimalController extends Controller
     {
         $this->authorize('delete', $animal);
 
-        $animal->delete();
+        DB::transaction(function () use ($animal): void {
+            $animal->update(['rfid_tag_id' => null]);
+            $animal->delete();
+        });
 
         return redirect()->route('animals.index')->with('success', 'Animal removed from the registry.');
+    }
+
+    private function releaseDeletedRfidTag(?string $rfidTagId): void
+    {
+        if ($rfidTagId !== null) {
+            Animal::onlyTrashed()
+                ->where('rfid_tag_id', $rfidTagId)
+                ->update(['rfid_tag_id' => null]);
+        }
     }
 
     public function show(Animal $animal)

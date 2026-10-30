@@ -86,6 +86,96 @@ test('an RFID tag number cannot be assigned to more than one animal', function (
     $this->assertDatabaseMissing('animals', ['name' => 'Luna']);
 });
 
+test('an RFID tag can be registered again after its animal is deleted', function () {
+    Role::firstOrCreate(['name' => 'admin']);
+
+    $admin = User::factory()->create(['email_verified_at' => now()]);
+    $admin->assignRole('admin');
+    $species = Species::factory()->create(['name' => 'Dog']);
+    $rfidTagId = '901021000338099';
+
+    $animal = Animal::create([
+        'name' => 'Rex',
+        'rfid_tag_id' => $rfidTagId,
+        'species_id' => $species->id,
+        'owner_name' => 'Maria Santos',
+        'owner_phone' => '09171234567',
+        'owner_address' => 'Barangay San Jose, Davao City',
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($admin)
+        ->delete("/animals/{$animal->id}")
+        ->assertRedirect('/animals');
+
+    $this->assertSoftDeleted('animals', [
+        'id' => $animal->id,
+        'rfid_tag_id' => null,
+    ]);
+
+    $this->actingAs($admin)
+        ->post('/animals', [
+            'name' => 'Luna',
+            'rfid_tag_id' => $rfidTagId,
+            'species_id' => $species->id,
+            'owner_name' => 'Maria Santos',
+            'owner_phone' => '09171234567',
+            'owner_address' => 'Barangay San Jose, Davao City',
+            'status' => 'active',
+        ])
+        ->assertRedirect('/animals')
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('animals', [
+        'name' => 'Luna',
+        'rfid_tag_id' => $rfidTagId,
+        'deleted_at' => null,
+    ]);
+});
+
+test('an RFID tag from an already deleted animal can be registered again', function () {
+    Role::firstOrCreate(['name' => 'admin']);
+
+    $admin = User::factory()->create(['email_verified_at' => now()]);
+    $admin->assignRole('admin');
+    $species = Species::factory()->create(['name' => 'Dog']);
+    $rfidTagId = '901021000338099';
+
+    $deletedAnimal = Animal::create([
+        'name' => 'Rex',
+        'rfid_tag_id' => $rfidTagId,
+        'species_id' => $species->id,
+        'owner_name' => 'Maria Santos',
+        'owner_phone' => '09171234567',
+        'owner_address' => 'Barangay San Jose, Davao City',
+        'status' => 'active',
+    ]);
+    $deletedAnimal->delete();
+
+    $this->actingAs($admin)
+        ->post('/animals', [
+            'name' => 'Luna',
+            'rfid_tag_id' => $rfidTagId,
+            'species_id' => $species->id,
+            'owner_name' => 'Maria Santos',
+            'owner_phone' => '09171234567',
+            'owner_address' => 'Barangay San Jose, Davao City',
+            'status' => 'active',
+        ])
+        ->assertRedirect('/animals')
+        ->assertSessionHasNoErrors();
+
+    $this->assertSoftDeleted('animals', [
+        'id' => $deletedAnimal->id,
+        'rfid_tag_id' => null,
+    ]);
+    $this->assertDatabaseHas('animals', [
+        'name' => 'Luna',
+        'rfid_tag_id' => $rfidTagId,
+        'deleted_at' => null,
+    ]);
+});
+
 test('animal registration shows vaccination status separately from animal status', function () {
     Role::firstOrCreate(['name' => 'staff']);
 
